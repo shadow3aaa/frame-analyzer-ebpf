@@ -2,8 +2,7 @@ use aya::programs::UProbe;
 use aya::{include_bytes_aligned, Bpf};
 use aya_log::BpfLogger;
 use clap::Parser;
-use log::{debug, info, warn};
-use tokio::signal;
+use log::{debug, warn};
 
 #[derive(Debug, Parser)]
 struct Opt {
@@ -11,8 +10,7 @@ struct Opt {
     pid: Option<i32>,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+fn main() -> Result<(), anyhow::Error> {
     let opt = Opt::parse();
 
     env_logger::init();
@@ -52,10 +50,6 @@ async fn main() -> Result<(), anyhow::Error> {
         "/system/lib64/libgui.so",
         opt.pid,
     )?;
-
-    info!("Waiting for Ctrl-C...");
-    signal::ctrl_c().await?;
-    info!("Exiting...");
 
     Ok(())
 }
