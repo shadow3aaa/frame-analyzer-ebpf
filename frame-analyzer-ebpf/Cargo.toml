@@ -7,13 +7,7 @@ publish = false
 [dependencies]
 aya = "0.12"
 aya-log = "0.2"
-clap = { version = "4.1", features = ["derive"] }
 frame-analyzer-ebpf-common = { path = "../frame-analyzer-ebpf-common", features = ["user"] }
 anyhow = "1"
-env_logger = "0.10"
 libc = "0.2"
-log = "0.4"
-
-[[bin]]
-name = "frame-analyzer-ebpf"
-path = "src/main.rs"
+lazy_static = "1.4.0"
