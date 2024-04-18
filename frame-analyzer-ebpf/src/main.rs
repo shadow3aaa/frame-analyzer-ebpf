@@ -2,7 +2,7 @@ use aya::programs::UProbe;
 use aya::{include_bytes_aligned, Bpf};
 use aya_log::BpfLogger;
 use clap::Parser;
-use log::{info, warn, debug};
+use log::{debug, info, warn};
 use tokio::signal;
 
 #[derive(Debug, Parser)]
@@ -46,7 +46,12 @@ async fn main() -> Result<(), anyhow::Error> {
     }
     let program: &mut UProbe = bpf.program_mut("frame_analyzer_ebpf").unwrap().try_into()?;
     program.load()?;
-    program.attach(Some("_ZN7android7Surface11queueBufferEP19ANativeWindowBufferi"), 0, "/system/lib64/libgui.so", opt.pid)?;
+    program.attach(
+        Some("_ZN7android7Surface11queueBufferEP19ANativeWindowBufferi"),
+        0,
+        "/system/lib64/libgui.so",
+        opt.pid,
+    )?;
 
     info!("Waiting for Ctrl-C...");
     signal::ctrl_c().await?;
