@@ -1,11 +1,8 @@
-use std::{mem, ptr, time::Duration};
+use std::{ptr, time::Duration};
 
 use frame_analyzer_ebpf_common::FrameSignal;
 
-use crate::{
-    error::{AnalyzerError, Result},
-    uprobe::UprobeHandler,
-};
+use crate::{error::Result, uprobe::UprobeHandler};
 
 pub struct AnalyzeTarget {
     pub uprobe: UprobeHandler,
@@ -22,8 +19,8 @@ impl AnalyzeTarget {
 
     pub fn update(&mut self) -> Result<Duration> {
         let mut frametime = 0;
-        while let Some(item) = self.uprobe.ring()?.next() {
-            let frame = try_read(&item)?;
+        if let Some(item) = self.uprobe.ring()?.next() {
+            let frame = unsafe { trans(&item) };
             frametime = frame.ktime_ns.saturating_sub(self.ktime_us_last);
             self.ktime_us_last = frame.ktime_ns;
         }
@@ -32,11 +29,6 @@ impl AnalyzeTarget {
     }
 }
 
-fn try_read(buf: &[u8]) -> Result<FrameSignal> {
-    if buf.len() < mem::size_of::<FrameSignal>() {
-        return Err(AnalyzerError::MapError);
-    }
-
-    let signal = unsafe { ptr::read_unaligned(buf.as_ptr() as *const FrameSignal) };
-    Ok(signal)
+unsafe fn trans(buf: &[u8]) -> FrameSignal {
+    ptr::read_unaligned(buf.as_ptr() as *const FrameSignal)
 }

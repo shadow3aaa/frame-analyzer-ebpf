@@ -11,7 +11,7 @@ use aya_ebpf::{
 use frame_analyzer_ebpf_common::FrameSignal;
 
 #[map]
-static RING_BUF: RingBuf = RingBuf::with_byte_size(0, 0);
+static RING_BUF: RingBuf = RingBuf::with_byte_size(1024, 0);
 
 #[uprobe]
 pub fn frame_analyzer_ebpf(ctx: ProbeContext) -> u32 {
