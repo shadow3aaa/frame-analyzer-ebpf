@@ -21,7 +21,7 @@ pub fn load_bpf() -> Result<Bpf> {
         "../.ebpf_target/bpfel-unknown-none/debug/frame-analyzer-ebpf"
     ))?;
     #[cfg(not(debug_assertions))]
-    let mut bpf = Bpf::load(include_bytes_aligned!(
+    let bpf = Bpf::load(include_bytes_aligned!(
         "../.ebpf_target/bpfel-unknown-none/release/frame-analyzer-ebpf"
     ))?;
 

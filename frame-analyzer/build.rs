@@ -3,11 +3,13 @@ use std::{env, fs, process::Command};
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    build_stub()?;
+    build_ebpf()?;
     Ok(())
 }
 
-fn build_stub() -> Result<()> {
+fn build_ebpf() -> Result<()> {
+    println!("cargo:rerun-if-changed=../frame-analyzer-ebpf");
+
     let current_dir = env::current_dir()?;
     let project_path = current_dir.parent().unwrap().join("frame-analyzer-ebpf");
     let target_dir = current_dir.join(".ebpf_target");
@@ -24,7 +26,8 @@ fn build_stub() -> Result<()> {
         "-Z",
         "build-std=core",
     ];
-    #[cfg(release_assertions)]
+    
+    #[cfg(not(debug_assertions))]
     let build_args = vec![
         "build",
         "--target",
