@@ -81,7 +81,8 @@ impl Analyzer {
         if self.buffer.is_empty() {
             let mut events = Events::with_capacity(EVENT_MAX);
             let _ = self.poll.poll(&mut events, None);
-            self.buffer.extend(events.into_iter().map(|e| e.to_owned()));
+            self.buffer
+                .extend(events.into_iter().map(std::borrow::ToOwned::to_owned));
         }
 
         let event = self.buffer.pop_front()?;
@@ -96,7 +97,8 @@ impl Analyzer {
         if self.buffer.is_empty() {
             let mut events = Events::with_capacity(EVENT_MAX);
             let _ = self.poll.poll(&mut events, Some(time));
-            self.buffer.extend(events.into_iter().map(|e| e.to_owned()));
+            self.buffer
+                .extend(events.into_iter().map(std::borrow::ToOwned::to_owned));
         }
 
         let event = self.buffer.pop_front()?;

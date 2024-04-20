@@ -47,6 +47,6 @@ impl AnalyzeTarget {
     }
 }
 
-unsafe fn trans(buf: &[u8]) -> FrameSignal {
-    ptr::read_unaligned(buf.as_ptr() as *const FrameSignal)
+const unsafe fn trans(buf: &[u8]) -> FrameSignal {
+    ptr::read_unaligned(buf.as_ptr().cast::<FrameSignal>())
 }

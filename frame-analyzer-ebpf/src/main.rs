@@ -20,10 +20,10 @@
 #![no_main]
 
 use aya_ebpf::{
-    macros::{uprobe, map},
-    programs::ProbeContext,
-    maps::RingBuf,
     helpers::gen::bpf_ktime_get_ns,
+    macros::{map, uprobe},
+    maps::RingBuf,
+    programs::ProbeContext,
 };
 
 use frame_analyzer_ebpf_common::FrameSignal;
@@ -41,12 +41,11 @@ pub fn frame_analyzer_ebpf(ctx: ProbeContext) -> u32 {
 
 fn try_frame_analyzer_ebpf(_ctx: ProbeContext) -> Result<u32, u32> {
     if let Some(mut entry) = RING_BUF.reserve::<FrameSignal>(0) {
-        let ktime_ns = unsafe { bpf_ktime_get_ns()
-        };
+        let ktime_ns = unsafe { bpf_ktime_get_ns() };
         entry.write(FrameSignal::new(ktime_ns));
         entry.submit(0);
     }
-    
+
     Ok(0)
 }
 
