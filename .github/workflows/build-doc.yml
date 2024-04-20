@@ -31,7 +31,9 @@ jobs:
       - name: Install bpf build tool
         run: cargo install bpf-linker
       - name: Build Documentation
-        run: cargo doc --all --no-deps
+        run: |
+          cargo doc --all --no-deps
+          echo "<meta http-equiv=\"refresh\" content=\"0; url=frame_analyzer\">" > target/doc/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Fix permissions
