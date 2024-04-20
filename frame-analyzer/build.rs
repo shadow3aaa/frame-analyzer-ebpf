@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use std::{env, fs, process::Command};
+use std::{env, fs, path::Path, process::Command};
 
 use anyhow::Result;
 
@@ -30,7 +30,9 @@ fn build_ebpf() -> Result<()> {
 
     let current_dir = env::current_dir()?;
     let project_path = current_dir.parent().unwrap().join("frame-analyzer-ebpf");
-    let target_dir = current_dir.join(".ebpf_target");
+    let out_dir = env::var("OUT_DIR")?;
+    let target_dir = Path::new(&out_dir).join("ebpf_target");
+    let target_dir_str = target_dir.to_str().unwrap();
 
     if !target_dir.exists() {
         fs::create_dir(&target_dir)?;
@@ -43,7 +45,7 @@ fn build_ebpf() -> Result<()> {
         "-Z",
         "build-std=core",
         "--target-dir",
-        target_dir.as_path().to_str().unwrap(),
+        target_dir_str,
     ];
 
     #[cfg(not(debug_assertions))]
@@ -53,11 +55,12 @@ fn build_ebpf() -> Result<()> {
         "-Z",
         "build-std=core",
         "--target-dir",
-        target_dir.as_path().to_str().unwrap(),
+        target_dir_str,
         "--release",
     ];
 
     if project_path.exists() {
+        // println!("cargo::warning=Building ebpf from workspace");
         Command::new("cargo")
             .arg("build")
             .args(ebpf_args)
@@ -65,10 +68,24 @@ fn build_ebpf() -> Result<()> {
             .current_dir(&project_path)
             .status()?;
     } else {
+        // println!("cargo::warning=Building ebpf from crates.io");
+
+        let _ = fs::remove_dir_all(target_dir.join("bin")); // clean up
         Command::new("cargo")
             .args(["install", "frame-analyzer-ebpf"])
             .args(ebpf_args)
+            .args(["--root", target_dir_str])
             .status()?;
+
+        #[cfg(debug_assertions)]
+        let prefix_dir = &target_dir.join("bpfel-unknown-none").join("debug");
+
+        #[cfg(not(debug_assertions))]
+        let prefix_dir = &target_dir.join("bpfel-unknown-none").join("release");
+
+        let _ = fs::create_dir_all(prefix_dir);
+        let to = &prefix_dir.join("frame-analyzer-ebpf");
+        fs::rename(target_dir.join("bin").join("frame-analyzer-ebpf"), to)?;
     }
 
     Ok(())

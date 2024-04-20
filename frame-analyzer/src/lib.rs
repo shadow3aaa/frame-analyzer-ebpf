@@ -18,6 +18,7 @@
  */
 #![deny(clippy::all, clippy::pedantic)]
 #![warn(clippy::nursery)]
+#![allow(clippy::module_name_repetitions)]
 mod analyze_target;
 mod ebpf;
 mod error;
