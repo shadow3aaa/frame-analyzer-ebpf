@@ -16,9 +16,48 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![deny(clippy::all, clippy::pedantic)]
-#![warn(clippy::nursery)]
+#![warn(clippy::nursery, clippy::all, clippy::pedantic)]
 #![allow(clippy::module_name_repetitions)]
+//! # frame-analyzer
+//!
+//! - This crate is used to monitor the frametime of the target app on the android device
+//! - Based on the EBPF and UPROBE implementations, you may need higher privileges (e.g. root) to use this crate properly
+//! - This IS NOT a bin crate, it uses some tricks (see [source](https://github.com/shadow3aaa/frame-analyzer-ebpf?tab=readme-ov-file)) to get it to work like a normal lib crate, even though it includes an EBPF program
+//!
+//! # Examples
+//!
+//! ```should_panic
+//! # use std::sync::{
+//! # atomic::{AtomicBool, Ordering},
+//! # Arc,
+//! # };
+//!
+//! # use frame_analyzer::Analyzer;
+//!
+//! # fn main() -> anyhow::Result<()> {
+//!     # let app_pid = 1;
+//!     let pid = app_pid;
+//!     let mut analyzer = Analyzer::new()?;
+//!     analyzer.attach_app(pid)?;
+//!
+//!     let running = Arc::new(AtomicBool::new(true));
+//!
+//!     {
+//!         let running = running.clone();
+//!         ctrlc::set_handler(move || {
+//!         running.store(false, Ordering::Release);
+//!         })?;
+//!     }
+//!
+//!     while running.load(Ordering::Acquire) {
+//!         if let Some((pid, frametime)) = analyzer.recv() {
+//!             println!("process: {pid}, frametime: {frametime:?}");
+//!         }
+//!     }
+//!
+//!     # Ok(())
+//! }
+//! ```
 mod analyze_target;
 mod ebpf;
 mod error;
