@@ -1,3 +1,3 @@
 {
-  "rust-analyzer.linkedProjects": ["Cargo.toml", "frame-analyzer-ebpf-ebpf/Cargo.toml"]
+  "rust-analyzer.linkedProjects": ["Cargo.toml", "frame-analyzer-ebpf/Cargo.toml"]
 }
