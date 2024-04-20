@@ -1,5 +1,6 @@
 [package]
 name = "frame-analyzer"
+readme.workspace = true
 edition.workspace = true
 version.workspace = true
 authors.workspace = true
