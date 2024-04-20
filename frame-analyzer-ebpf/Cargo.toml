@@ -1,7 +1,11 @@
 [package]
 name = "frame-analyzer-ebpf"
-version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 aya-ebpf = "0.1.0"
