@@ -18,11 +18,11 @@ pub fn load_bpf() -> Result<Bpf> {
     // This will include eBPF object file as raw bytes at compile-time and load it at runtime.
     #[cfg(debug_assertions)]
     let bpf = Bpf::load(include_bytes_aligned!(
-        "../../target/bpfel-unknown-none/debug/frame-analyzer-ebpf"
+        "../.ebpf_target/bpfel-unknown-none/debug/frame-analyzer-ebpf"
     ))?;
     #[cfg(not(debug_assertions))]
     let mut bpf = Bpf::load(include_bytes_aligned!(
-        "../../target/bpfel-unknown-none/release/frame-analyzer-ebpf"
+        "../.ebpf_target/bpfel-unknown-none/release/frame-analyzer-ebpf"
     ))?;
 
     Ok(bpf)

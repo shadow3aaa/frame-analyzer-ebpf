@@ -6,10 +6,12 @@ publish = false
 
 [dependencies]
 aya = "0.12.0"
-aya-log = "0.2"
 frame-analyzer-ebpf-common = { path = "../frame-analyzer-ebpf-common", features = ["user"] }
 anyhow = "1"
 libc = "0.2"
 thiserror = "1.0.58"
 ctor = "0.2.8"
-mio = "0.8.11"
+mio = { version = "0.8.11", features = ["os-ext"] }
+
+[build-dependencies]
+anyhow = "1"
