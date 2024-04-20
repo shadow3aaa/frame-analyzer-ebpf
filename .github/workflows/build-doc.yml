@@ -28,6 +28,8 @@ jobs:
         with:
           override: true
           toolchain: nightly
+      - name: Install bpf build tool
+        run: cargo install bpf-linker
       - name: Build Documentation
         run: cargo doc --all --no-deps
       - name: Setup Pages
