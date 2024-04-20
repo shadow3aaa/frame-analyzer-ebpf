@@ -37,34 +37,39 @@ fn build_ebpf() -> Result<()> {
     }
 
     #[cfg(debug_assertions)]
-    let build_args = vec![
-        "build",
+    let ebpf_args = vec![
         "--target",
         "bpfel-unknown-none",
         "-Z",
         "build-std=core",
+        "--target-dir",
+        target_dir.as_path().to_str().unwrap(),
     ];
 
     #[cfg(not(debug_assertions))]
-    let build_args = vec![
-        "build",
+    let ebpf_args = vec![
         "--target",
         "bpfel-unknown-none",
         "-Z",
         "build-std=core",
+        "--target-dir",
+        target_dir.as_path().to_str().unwrap(),
         "--release",
     ];
 
-    /* println!("cargo:warning={:?}", build_args);
-    println!("cargo:warning={:?}", project_path);
-    println!("cargo:warning={:?}", target_dir); */
-
-    Command::new("cargo")
-        .args(build_args)
-        .args(["--target-dir", target_dir.as_os_str().to_str().unwrap()])
-        .env_remove("RUSTUP_TOOLCHAIN")
-        .current_dir(&project_path)
-        .output()?;
+    if project_path.exists() {
+        Command::new("cargo")
+            .arg("build")
+            .args(ebpf_args)
+            .env_remove("RUSTUP_TOOLCHAIN")
+            .current_dir(&project_path)
+            .status()?;
+    } else {
+        Command::new("cargo")
+            .args(["install", "frame-analyzer-ebpf"])
+            .args(ebpf_args)
+            .status()?;
+    }
 
     Ok(())
 }
