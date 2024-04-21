@@ -158,6 +158,7 @@ impl Analyzer {
     }
 
     /// Attach the Analyzer to the target application
+    /// If attach the same application multiple times, `Analyzer::attach_app` will directly return `Ok` without attaching again
     ///
     /// # Errors
     ///
@@ -184,6 +185,10 @@ impl Analyzer {
     /// # }
     /// ```
     pub fn attach_app(&mut self, pid: Pid) -> Result<()> {
+        if self.contains(pid) {
+            return Ok(());
+        }
+
         let mut uprobe = UprobeHandler::attach_app(pid)?;
 
         self.poll.registry().register(
