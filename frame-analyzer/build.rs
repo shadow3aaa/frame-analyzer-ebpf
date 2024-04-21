@@ -26,8 +26,6 @@ fn main() -> Result<()> {
 }
 
 fn build_ebpf() -> Result<()> {
-    println!("cargo:rerun-if-changed=../frame-analyzer-ebpf");
-
     let current_dir = env::current_dir()?;
     let project_path = current_dir.parent().unwrap().join("frame-analyzer-ebpf");
     let out_dir = env::var("OUT_DIR")?;
@@ -38,28 +36,19 @@ fn build_ebpf() -> Result<()> {
         fs::create_dir(&target_dir)?;
     }
 
-    #[cfg(debug_assertions)]
-    let ebpf_args = vec![
+    let mut ebpf_args = vec![
         "--target",
         "bpfel-unknown-none",
         "-Z",
         "build-std=core",
         "--target-dir",
         target_dir_str,
-    ];
-
-    #[cfg(not(debug_assertions))]
-    let ebpf_args = vec![
-        "--target",
-        "bpfel-unknown-none",
-        "-Z",
-        "build-std=core",
-        "--target-dir",
-        target_dir_str,
-        "--release",
     ];
 
     if project_path.exists() {
+        println!("cargo:rerun-if-changed=../frame-analyzer-ebpf");
+        #[cfg(not(debug_assertions))]
+        ebpf_args.push("--release");
         // println!("cargo::warning=Building ebpf from workspace");
         Command::new("cargo")
             .arg("build")
@@ -69,6 +58,8 @@ fn build_ebpf() -> Result<()> {
             .status()?;
     } else {
         // println!("cargo::warning=Building ebpf from crates.io");
+        #[cfg(debug_assertions)]
+        ebpf_args.push("--debug");
 
         let _ = fs::remove_dir_all(target_dir.join("bin")); // clean up
         Command::new("cargo")
