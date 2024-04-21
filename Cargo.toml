@@ -4,7 +4,7 @@ members = ["frame-analyzer", "frame-analyzer-ebpf-common", "examples/simple-anal
 
 [workspace.package]
 edition = "2021"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["shadow3aaa@github.com"]
 repository = "https://github.com/shadow3aaa/frame-analyzer-ebpf"
 readme = "README.md"
