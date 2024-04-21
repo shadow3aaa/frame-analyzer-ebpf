@@ -97,6 +97,7 @@ fn build_ebpf() -> Result<()> {
             .args(["install", "frame-analyzer-ebpf"])
             .args(ebpf_args)
             .args(["--root", target_dir_str])
+            .env_remove("RUSTUP_TOOLCHAIN")
             .env("PATH", add_path(bin)?)
             .status()?;
 
