@@ -35,13 +35,13 @@
 //! Simple frametime analyzer, print pid & frametime on the screen
 //!
 //! ```
-//! # use std::sync::{
-//! #   atomic::{AtomicBool, Ordering},
-//! #   Arc,
-//! # };
-//! #
+//! use std::sync::{
+//!   atomic::{AtomicBool, Ordering},
+//!   Arc,
+//! };
+//!
 //! use frame_analyzer::Analyzer;
-//! #
+//!
 //! # fn main() {
 //! #   let _ = try_main(); // ignore error
 //! # }
@@ -103,8 +103,8 @@ const EVENT_MAX: usize = 1024;
 /// # Examples
 ///
 /// ```
-/// use frame_analyzer::Analyzer;
-///
+/// # use frame_analyzer::Analyzer;
+/// #
 /// #
 /// # fn main() {
 /// #   let _ = try_main();
@@ -235,7 +235,7 @@ impl Analyzer {
     ///
     /// # Examples
     /// ```
-    /// use frame_analyzer::Analyzer;
+    /// # use frame_analyzer::Analyzer;
     ///
     /// # fn main() {
     /// #   let _ = try_main();
@@ -277,7 +277,7 @@ impl Analyzer {
     /// # Examples
     /// ```
     /// use std::time::Duration;
-    /// use frame_analyzer::Analyzer;
+    /// # use frame_analyzer::Analyzer;
     ///
     /// # fn main() {
     /// #   let _ = try_main();
