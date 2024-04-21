@@ -236,7 +236,7 @@ impl Analyzer {
     /// # Examples
     /// ```
     /// # use frame_analyzer::Analyzer;
-    ///
+    /// #
     /// # fn main() {
     /// #   let _ = try_main();
     /// # }
