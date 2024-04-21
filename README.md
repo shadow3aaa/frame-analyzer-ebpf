@@ -2,14 +2,11 @@
 
 [![Crates.io][crates-badge]][crates-url]
 ![License][license-badge]
-[![Build status][build-badge]][build-url]
 [![Documentaiton][api-docs-badge]][api-docs]
 
 [crates-badge]: https://img.shields.io/crates/v/frame-analyzer.svg?style=for-the-badge&logo=rust
 [crates-url]: https://crates.io/crates/frame-analyzer
 [license-badge]: https://img.shields.io/badge/license-GPLv3-blue?style=for-the-badge
-[build-badge]: https://img.shields.io/github/actions/workflow/status/aya-rs/aya/ci.yml?style=for-the-badge
-[build-url]: https://github.com/aya-rs/aya/actions/workflows/ci.yml
 [api-docs-badge]: https://img.shields.io/badge/docs-frame--analyzer-blue.svg?style=for-the-badge&logo=docsdotrs
 [api-docs]: https://shadow3aaa.github.io/frame-analyzer-ebpf
 
