@@ -17,46 +17,63 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #![warn(clippy::nursery, clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
 //! # frame-analyzer
 //!
-//! - This crate is used to monitor the frametime of the target app on the android device
+//! - This crate is used to monitor the frametime of the target application on the android device
 //! - Based on the EBPF and UPROBE implementations, you may need higher privileges (e.g. root) to use this crate properly
 //! - This IS NOT a bin crate, it uses some tricks (see [source](https://github.com/shadow3aaa/frame-analyzer-ebpf?tab=readme-ov-file)) to get it to work like a normal lib crate, even though it includes an EBPF program
+//! - Only 64-bit devices & apps are supported!
 //!
 //! # Examples
 //!
-//! ```should_panic
+//! Simple frametime analyzer, print pid & frametime on the screen
+//!
+//! ```
 //! # use std::sync::{
-//! # atomic::{AtomicBool, Ordering},
-//! # Arc,
+//! #   atomic::{AtomicBool, Ordering},
+//! #   Arc,
 //! # };
+//! #
+//! use frame_analyzer::Analyzer;
+//! #
+//! # fn main() {
+//! #   let _ = try_main(); // ignore error
+//! # }
+//! #
+//! # fn try_main() -> anyhow::Result<()> {
+//! #   let app_pid_a = 1;
+//! #   let app_pid_b = 2;
+//! #   let app_pid_c = 3;
+//! let mut analyzer = Analyzer::new()?;
+//! analyzer.attach_app(app_pid_a)?;
+//! analyzer.attach_app(app_pid_b)?;
+//! analyzer.attach_app(app_pid_c)?; // muti-apps are supported
 //!
-//! # use frame_analyzer::Analyzer;
+//! let running = Arc::new(AtomicBool::new(true));
 //!
-//! # fn main() -> anyhow::Result<()> {
-//!     # let app_pid = 1;
-//!     let pid = app_pid;
-//!     let mut analyzer = Analyzer::new()?;
-//!     analyzer.attach_app(pid)?;
-//!
-//!     let running = Arc::new(AtomicBool::new(true));
-//!
-//!     {
-//!         let running = running.clone();
-//!         ctrlc::set_handler(move || {
+//! {
+//!     let running = running.clone();
+//!     ctrlc::set_handler(move || {
 //!         running.store(false, Ordering::Release);
-//!         })?;
-//!     }
-//!
-//!     while running.load(Ordering::Acquire) {
-//!         if let Some((pid, frametime)) = analyzer.recv() {
-//!             println!("process: {pid}, frametime: {frametime:?}");
-//!         }
-//!     }
-//!
-//!     # Ok(())
+//!     })?;
 //! }
+//! #
+//! #   running.store(false, Ordering::Release); // avoid dead-loop in test
+//! #
+//! while running.load(Ordering::Acquire) {
+//!     if let Some((pid, frametime)) = analyzer.recv() {
+//!         println!("process: {pid}, frametime: {frametime:?}");
+//!     }
+//! }
+//! #
+//! #   Ok(())
+//! # }
 //! ```
 mod analyze_target;
 mod ebpf;
@@ -76,10 +93,34 @@ pub use error::AnalyzerError;
 use error::Result;
 use uprobe::UprobeHandler;
 
+/// The pid of the target application
 pub type Pid = i32;
 
 const EVENT_MAX: usize = 1024;
 
+/// The Frame Analyzer
+///
+/// # Examples
+///
+/// ```
+/// use frame_analyzer::Analyzer;
+///
+/// #
+/// # fn main() {
+/// #   let _ = try_main();
+/// # }
+/// #
+/// # fn try_main() -> anyhow::Result<()> {
+/// # let app_pid = 1;
+/// let mut analyzer = Analyzer::new()?;
+/// analyzer.attach_app(app_pid)?;
+///
+/// if let Some((pid, frametime)) = analyzer.recv() {
+///     println!("process: {pid}, frametime: {frametime:?}");
+/// }
+/// #   Ok(())
+/// # }
+/// ```
 pub struct Analyzer {
     poll: Poll,
     map: HashMap<Pid, AnalyzeTarget>,
@@ -87,6 +128,27 @@ pub struct Analyzer {
 }
 
 impl Analyzer {
+    /// Create a new analyzer
+    ///
+    /// # Errors
+    ///
+    /// This function will make a syscall to the operating system to create the system selector. If this syscall fails, `Analyzer::new` will return with the error.
+    /// See [mio Poll](https://docs.rs/mio/0.8.11/mio/poll/struct.Poll.html) level docs for more details.
+    ///
+    /// # Examples
+    /// ```
+    /// use frame_analyzer::Analyzer;
+    ///
+    /// #
+    /// # fn main() {
+    /// #   let _ = try_main();
+    /// # }
+    /// #
+    /// # fn try_main() -> anyhow::Result<()> {
+    /// let analyzer = Analyzer::new()?;
+    /// #   Ok(())
+    /// # }
+    /// ```
     pub fn new() -> Result<Self> {
         let poll = Poll::new()?;
         let map = HashMap::new();
@@ -95,6 +157,32 @@ impl Analyzer {
         Ok(Self { poll, map, buffer })
     }
 
+    /// Attach the Analyzer to the target application
+    ///
+    /// # Errors
+    ///
+    /// `Analyzer::attach_app` will return an error in these cases
+    ///
+    /// - Target application is not 64-bit
+    /// - Target application is not using /system/lib64/libgui.so (this will only happen if you use this crate on a non-Android platform)
+    /// - Current user does not have enough permissions to load the built-in ebpf program into the kernel, in which case it will return `BpfProgramError`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use frame_analyzer::Analyzer;
+    /// #
+    /// # fn main() {
+    /// #   let _ = try_main();
+    /// # }
+    /// #
+    /// # fn try_main() -> anyhow::Result<()> {
+    /// #   let mut analyzer = Analyzer::new()?;
+    /// #   let app_pid = 2;
+    /// analyzer.attach_app(app_pid)?;
+    /// #   Ok(())
+    /// # }
+    /// ```
     pub fn attach_app(&mut self, pid: Pid) -> Result<()> {
         let mut uprobe = UprobeHandler::attach_app(pid)?;
 
@@ -108,6 +196,31 @@ impl Analyzer {
         Ok(())
     }
 
+    /// Detach the Analyzer from the target application
+    ///
+    /// # Errors
+    ///
+    /// `Analyzer::detach_app` returns `AppNotFound` if the target app is not already attached by `Analyzer::attach`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use frame_analyzer::Analyzer;
+    /// #
+    /// #
+    /// # fn main() {
+    /// #   let _ = try_main();
+    /// # }
+    /// #
+    /// # fn try_main() -> anyhow::Result<()> {
+    /// let mut analyzer = Analyzer::new()?;
+    /// #   let app_pid = 2;
+    /// analyzer.attach_app(app_pid)?;
+    /// // Do some useful work for awhile
+    /// analyzer.detach_app(app_pid)?; // if you don't detach here, analyzer will auto detach it when itself go dropped
+    /// #   Ok(())
+    /// # }
+    /// ```
     pub fn detach_app(&mut self, pid: Pid) -> Result<()> {
         let mut target = self.map.remove(&pid).ok_or(AnalyzerError::AppNotFound)?;
         self.poll
@@ -117,6 +230,31 @@ impl Analyzer {
         Ok(())
     }
 
+    /// Attempts to wait for a frametime value on this analyzer
+    /// `Analyzer::recv` will always block the current thread if there is no data available
+    ///
+    /// # Examples
+    /// ```
+    /// use frame_analyzer::Analyzer;
+    ///
+    /// # fn main() {
+    /// #   let _ = try_main();
+    /// # }
+    /// #
+    /// # fn try_main() -> anyhow::Result<()> {
+    /// #   let mut analyzer = Analyzer::new()?;
+    /// #   let app_pid = 2;
+    /// analyzer.attach_app(app_pid)?;
+    ///
+    /// if let Some((pid, frametime)) = analyzer.recv() {
+    ///     println!("process: {pid}, frametime: {frametime:?}");
+    ///     // and use it for further analyze...
+    /// }
+    ///
+    /// analyzer.detach_app(app_pid)?; // if you don't detach here, analyzer will auto detach it when itself go dropped
+    /// #   Ok(())
+    /// # }
+    /// ```
     pub fn recv(&mut self) -> Option<(Pid, Duration)> {
         if self.buffer.is_empty() {
             let mut events = Events::with_capacity(EVENT_MAX);
@@ -133,6 +271,32 @@ impl Analyzer {
         Some((pid, frametime))
     }
 
+    /// Attempts to wait for a value on this receiver, returning `None` if it waits more than timeout
+    /// `Analyzer::recv_timeout` will always block the current thread if there is no data available
+    ///
+    /// # Examples
+    /// ```
+    /// use std::time::Duration;
+    /// use frame_analyzer::Analyzer;
+    ///
+    /// # fn main() {
+    /// #   let _ = try_main();
+    /// # }
+    /// #
+    /// # fn try_main() -> anyhow::Result<()> {
+    /// #   let mut analyzer = Analyzer::new()?;
+    /// #   let app_pid = 2;
+    /// analyzer.attach_app(app_pid)?;
+    ///
+    /// if let Some((pid, frametime)) = analyzer.recv_timeout(Duration::from_secs(1)) {
+    ///     println!("process: {pid}, frametime: {frametime:?}");
+    ///     // and use it for further analyze...
+    /// }
+    ///
+    /// analyzer.detach_app(app_pid)?; // if you don't detach here, analyzer will auto detach it when itself go dropped
+    /// #   Ok(())
+    /// # }
+    /// ```
     pub fn recv_timeout(&mut self, time: Duration) -> Option<(Pid, Duration)> {
         if self.buffer.is_empty() {
             let mut events = Events::with_capacity(EVENT_MAX);
