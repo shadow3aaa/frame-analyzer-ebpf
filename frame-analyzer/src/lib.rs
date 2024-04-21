@@ -133,7 +133,7 @@ impl Analyzer {
     /// # Errors
     ///
     /// This function will make a syscall to the operating system to create the system selector. If this syscall fails, `Analyzer::new` will return with the error.
-    /// See [mio Poll](https://docs.rs/mio/0.8.11/mio/poll/struct.Poll.html) level docs for more details.
+    /// See [mio Poll](https://docs.rs/mio/0.8.11/mio/poll/struct.Poll.html) docs for more details.
     ///
     /// # Examples
     /// ```
