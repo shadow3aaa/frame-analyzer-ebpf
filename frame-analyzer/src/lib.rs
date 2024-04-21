@@ -312,4 +312,15 @@ impl Analyzer {
 
         Some((pid, frametime))
     }
+
+    /// Whether the target application has been attached by the `Analyzer`
+    #[must_use]
+    pub fn contains(&self, app: Pid) -> bool {
+        self.map.contains_key(&app)
+    }
+
+    /// An iterator visiting all attched pids in arbitrary order
+    pub fn pids(&self) -> impl Iterator<Item = Pid> + '_ {
+        self.map.keys().copied()
+    }
 }
