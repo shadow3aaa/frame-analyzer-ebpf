@@ -268,7 +268,7 @@ impl Analyzer {
                 .extend(events.into_iter().map(std::borrow::ToOwned::to_owned));
         }
 
-        let event = self.buffer.pop_back()?;
+        let event = self.buffer.pop_front()?;
         let Token(pid) = event.token();
         let pid = pid as Pid;
         let frametime = self.map.get_mut(&pid)?.update().ok()?;
@@ -310,7 +310,7 @@ impl Analyzer {
                 .extend(events.into_iter().map(std::borrow::ToOwned::to_owned));
         }
 
-        let event = self.buffer.pop_back()?;
+        let event = self.buffer.pop_front()?;
         let Token(pid) = event.token();
         let pid = pid as Pid;
         let frametime = self.map.get_mut(&pid)?.update().ok()?;
