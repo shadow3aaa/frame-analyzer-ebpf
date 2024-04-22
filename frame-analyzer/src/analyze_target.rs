@@ -24,14 +24,14 @@ use crate::{error::Result, uprobe::UprobeHandler};
 
 pub struct AnalyzeTarget {
     pub uprobe: UprobeHandler,
-    ktime_us_last: u64,
+    ktime_us_last: Option<u64>,
 }
 
 impl AnalyzeTarget {
     pub fn new(uprobe: UprobeHandler) -> Self {
         Self {
             uprobe,
-            ktime_us_last: 0,
+            ktime_us_last: None,
         }
     }
 
@@ -39,8 +39,11 @@ impl AnalyzeTarget {
         let mut frametime = 0;
         if let Some(item) = self.uprobe.ring()?.next() {
             let frame = unsafe { trans(&item) };
-            frametime = frame.ktime_ns.saturating_sub(self.ktime_us_last);
-            self.ktime_us_last = frame.ktime_ns;
+
+            if let Some(ktime_us_last) = self.ktime_us_last {
+                frametime = frame.ktime_ns.saturating_sub(ktime_us_last);
+            }
+            self.ktime_us_last = Some(frame.ktime_ns);
         }
 
         Ok(Duration::from_nanos(frametime))
