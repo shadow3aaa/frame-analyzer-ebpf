@@ -231,6 +231,7 @@ impl Analyzer {
         self.poll
             .registry()
             .deregister(&mut SourceFd(&target.uprobe.ring()?.as_raw_fd()))?;
+        self.map.remove(&pid);
 
         Ok(())
     }
