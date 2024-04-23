@@ -18,27 +18,20 @@
  */
 use aya::{
     maps::{MapData, RingBuf},
-    programs::{uprobe::UProbeLinkId, UProbe},
+    programs::UProbe,
     Bpf,
 };
-use std::mem;
 
 use crate::{ebpf::load_bpf, error::Result};
 
 pub struct UprobeHandler {
     bpf: Bpf,
-    id: Option<UProbeLinkId>,
 }
 
 impl Drop for UprobeHandler {
     fn drop(&mut self) {
-        let mut id = None;
-        mem::swap(&mut self.id, &mut id);
         if let Ok(program) = self.get_program() {
-            if let Some(id) = id {
-                let _ = program.detach(id);
-                self.id = None;
-            }
+            let _ = program.unload();
         }
     }
 }
@@ -49,15 +42,14 @@ impl UprobeHandler {
 
         let program: &mut UProbe = bpf.program_mut("frame_analyzer_ebpf").unwrap().try_into()?;
         program.load()?;
-
-        let id = program.attach(
+        program.attach(
             Some("_ZN7android7Surface11queueBufferEP19ANativeWindowBufferi"),
             0,
             "/system/lib64/libgui.so",
             Some(pid),
         )?;
 
-        Ok(Self { bpf, id: Some(id) })
+        Ok(Self { bpf })
     }
 
     pub fn ring(&mut self) -> Result<RingBuf<&mut MapData>> {

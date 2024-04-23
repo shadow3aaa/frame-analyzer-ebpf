@@ -122,9 +122,9 @@ const EVENT_MAX: usize = 1024;
 /// # }
 /// ```
 pub struct Analyzer {
-    poll: Poll,
+    poll: Option<Poll>,
     map: HashMap<Pid, AnalyzeTarget>,
-    buffer: VecDeque<Event>,
+    buffer: VecDeque<Pid>,
 }
 
 impl Analyzer {
@@ -150,7 +150,7 @@ impl Analyzer {
     /// # }
     /// ```
     pub fn new() -> Result<Self> {
-        let poll = Poll::new()?;
+        let poll = None;
         let map = HashMap::new();
         let buffer = VecDeque::with_capacity(EVENT_MAX);
 
@@ -189,14 +189,9 @@ impl Analyzer {
             return Ok(());
         }
 
-        let mut uprobe = UprobeHandler::attach_app(pid)?;
-
-        self.poll.registry().register(
-            &mut SourceFd(&uprobe.ring()?.as_raw_fd()),
-            Token(pid as usize),
-            Interest::READABLE,
-        )?;
+        let uprobe = UprobeHandler::attach_app(pid)?;
         self.map.insert(pid, AnalyzeTarget::new(uprobe));
+        self.register_poll()?;
 
         Ok(())
     }
@@ -227,11 +222,13 @@ impl Analyzer {
     /// # }
     /// ```
     pub fn detach_app(&mut self, pid: Pid) -> Result<()> {
-        let mut target = self.map.remove(&pid).ok_or(AnalyzerError::AppNotFound)?;
-        self.poll
-            .registry()
-            .deregister(&mut SourceFd(&target.uprobe.ring()?.as_raw_fd()))?;
+        if !self.contains(pid) {
+            return Ok(());
+        }
+
+        self.map.remove(&pid).ok_or(AnalyzerError::AppNotFound)?;
         self.map.remove(&pid);
+        self.register_poll()?;
 
         Ok(())
     }
@@ -263,15 +260,17 @@ impl Analyzer {
     /// ```
     pub fn recv(&mut self) -> Option<(Pid, Duration)> {
         if self.buffer.is_empty() {
-            let mut events = Events::with_capacity(EVENT_MAX);
-            let _ = self.poll.poll(&mut events, None);
-            self.buffer
-                .extend(events.into_iter().map(std::borrow::ToOwned::to_owned));
+            if let Some(ref mut poll) = self.poll {
+                let mut events = Events::with_capacity(EVENT_MAX);
+                let _ = poll.poll(&mut events, None);
+
+                self.buffer.extend(events.iter().map(event_to_pid));
+            }
+
+            let _ = self.register_poll();
         }
 
-        let event = self.buffer.pop_front()?;
-        let Token(pid) = event.token();
-        let pid = pid as Pid;
+        let pid = self.buffer.pop_front()?;
         let frametime = self.map.get_mut(&pid)?.update().ok()?;
 
         Some((pid, frametime))
@@ -305,15 +304,17 @@ impl Analyzer {
     /// ```
     pub fn recv_timeout(&mut self, time: Duration) -> Option<(Pid, Duration)> {
         if self.buffer.is_empty() {
-            let mut events = Events::with_capacity(EVENT_MAX);
-            let _ = self.poll.poll(&mut events, Some(time));
-            self.buffer
-                .extend(events.into_iter().map(std::borrow::ToOwned::to_owned));
+            if let Some(ref mut poll) = self.poll {
+                let mut events = Events::with_capacity(EVENT_MAX);
+                let _ = poll.poll(&mut events, Some(time));
+
+                self.buffer.extend(events.iter().map(event_to_pid));
+            }
+
+            let _ = self.register_poll();
         }
 
-        let event = self.buffer.pop_front()?;
-        let Token(pid) = event.token();
-        let pid = pid as Pid;
+        let pid = self.buffer.pop_front()?;
         let frametime = self.map.get_mut(&pid)?.update().ok()?;
 
         Some((pid, frametime))
@@ -329,4 +330,25 @@ impl Analyzer {
     pub fn pids(&self) -> impl Iterator<Item = Pid> + '_ {
         self.map.keys().copied()
     }
+
+    fn register_poll(&mut self) -> Result<()> {
+        let poll = Poll::new()?;
+
+        for (pid, handler) in &mut self.map {
+            poll.registry().register(
+                &mut SourceFd(&handler.uprobe.ring()?.as_raw_fd()),
+                Token(*pid as usize),
+                Interest::READABLE,
+            )?;
+        }
+
+        self.poll = Some(poll);
+        Ok(())
+    }
+}
+
+fn event_to_pid(event: &Event) -> Pid {
+    let token = event.token();
+    let Token(pid) = token;
+    pid as Pid
 }
