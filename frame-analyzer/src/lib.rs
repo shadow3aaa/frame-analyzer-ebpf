@@ -271,7 +271,7 @@ impl Analyzer {
         }
 
         let pid = self.buffer.pop_front()?;
-        let frametime = self.map.get_mut(&pid)?.update().ok()?;
+        let frametime = self.map.get_mut(&pid)?.update()?;
 
         Some((pid, frametime))
     }
@@ -315,7 +315,7 @@ impl Analyzer {
         }
 
         let pid = self.buffer.pop_front()?;
-        let frametime = self.map.get_mut(&pid)?.update().ok()?;
+        let frametime = self.map.get_mut(&pid)?.update()?;
 
         Some((pid, frametime))
     }

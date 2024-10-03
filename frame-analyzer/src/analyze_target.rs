@@ -16,37 +16,58 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use std::{ptr, time::Duration};
+use std::{
+    collections::{HashMap, VecDeque},
+    ptr,
+    time::Duration,
+};
 
 use frame_analyzer_ebpf_common::FrameSignal;
 
-use crate::{error::Result, uprobe::UprobeHandler};
+use crate::uprobe::UprobeHandler;
 
 pub struct AnalyzeTarget {
     pub uprobe: UprobeHandler,
-    ktime_us_last: Option<u64>,
+    buffers: HashMap<usize, (u64, VecDeque<Duration>)>,
 }
 
 impl AnalyzeTarget {
     pub fn new(uprobe: UprobeHandler) -> Self {
         Self {
             uprobe,
-            ktime_us_last: None,
+            buffers: HashMap::new(),
         }
     }
 
-    pub fn update(&mut self) -> Result<Duration> {
-        let mut frametime = 0;
-        if let Some(item) = self.uprobe.ring()?.next() {
-            let frame = unsafe { trans(&item) };
+    pub fn update(&mut self) -> Option<Duration> {
+        let mut ring = self.uprobe.ring().unwrap();
+        let item = ring.next()?;
+        let event = unsafe { trans(&item) };
+        if let Some((timestamp, buffer)) = self.buffers.get_mut(&event.buffer) {
+            let frametime = event.ktime_ns.saturating_sub(*timestamp);
+            *timestamp = event.ktime_ns;
 
-            if let Some(ktime_us_last) = self.ktime_us_last {
-                frametime = frame.ktime_ns.saturating_sub(ktime_us_last);
+            if buffer.len() >= 144 {
+                buffer.pop_back();
             }
-            self.ktime_us_last = Some(frame.ktime_ns);
+
+            buffer.push_front(Duration::from_nanos(frametime));
+        } else {
+            self.buffers
+                .insert(event.buffer, (event.ktime_ns, VecDeque::with_capacity(144)));
         }
 
-        Ok(Duration::from_nanos(frametime))
+        if self.buffers.get(&event.buffer)
+            == self
+                .buffers
+                .values()
+                .filter(|(_, buffer)| buffer.len() == 144)
+                .min_by_key(|(_, buffer)| buffer.iter().copied().sum::<Duration>())
+        {
+            self.buffers.get(&event.buffer)?.1.front().copied()
+        } else {
+            None
+        }
     }
 }
 

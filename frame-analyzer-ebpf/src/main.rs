@@ -39,10 +39,10 @@ pub fn frame_analyzer_ebpf(ctx: ProbeContext) -> u32 {
     }
 }
 
-fn try_frame_analyzer_ebpf(_ctx: ProbeContext) -> Result<u32, u32> {
+fn try_frame_analyzer_ebpf(ctx: ProbeContext) -> Result<u32, u32> {
     if let Some(mut entry) = RING_BUF.reserve::<FrameSignal>(0) {
         let ktime_ns = unsafe { bpf_ktime_get_ns() };
-        entry.write(FrameSignal::new(ktime_ns));
+        entry.write(FrameSignal::new(ktime_ns, ctx.arg::<usize>(0).unwrap()));
         entry.submit(0);
     }
 

@@ -21,10 +21,11 @@
 #[repr(C)]
 pub struct FrameSignal {
     pub ktime_ns: u64,
+    pub buffer: usize,
 }
 
 impl FrameSignal {
-    pub const fn new(ktime_ns: u64) -> Self {
-        Self { ktime_ns }
+    pub const fn new(ktime_ns: u64, buffer: usize) -> Self {
+        Self { ktime_ns, buffer }
     }
 }

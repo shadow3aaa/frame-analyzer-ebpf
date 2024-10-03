@@ -16,9 +16,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    collections::VecDeque,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
 
 use anyhow::Result;
@@ -50,9 +54,21 @@ fn main() -> Result<()> {
         })?;
     }
 
+    let mut buffer = VecDeque::with_capacity(120);
+
     while running.load(Ordering::Acquire) {
-        if let Some((_, frametime)) = analyzer.recv() {
-            println!("frametime: {frametime:?}");
+        if let Some((pid, frametime)) = analyzer.recv() {
+            println!("frametime: {frametime:?}, pid: {pid}");
+            if buffer.len() >= 120 {
+                buffer.pop_back();
+            }
+            buffer.push_front(frametime);
+            if buffer.len() == 120 {
+                let fps = 1.0
+                    / (buffer.iter().copied().sum::<Duration>() / buffer.len() as u32)
+                        .as_secs_f64();
+                println!("{fps}");
+            }
         }
     }
 
