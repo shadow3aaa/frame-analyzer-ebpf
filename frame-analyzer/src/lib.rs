@@ -227,10 +227,34 @@ impl Analyzer {
         }
 
         self.map.remove(&pid).ok_or(AnalyzerError::AppNotFound)?;
-        self.map.remove(&pid);
         self.register_poll()?;
 
         Ok(())
+    }
+
+    /// Detach the Analyzer from all attached apps
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use frame_analyzer::Analyzer;
+    /// #
+    /// #
+    /// # fn main() {
+    /// #   let _ = try_main();
+    /// # }
+    /// #
+    /// # fn try_main() -> anyhow::Result<()> {
+    /// let mut analyzer = Analyzer::new()?;
+    /// #   let app_pid = 2;
+    /// analyzer.attach_app(app_pid);
+    /// // Do some useful work for awhile
+    /// analyzer.detach_apps(); // if you don't detach here, analyzer will auto detach it when itself go dropped
+    /// #   Ok(())
+    /// # }
+    /// ```
+    pub fn detach_apps(&mut self) {
+        self.map.clear();
     }
 
     /// Attempts to wait for a frametime value on this analyzer
