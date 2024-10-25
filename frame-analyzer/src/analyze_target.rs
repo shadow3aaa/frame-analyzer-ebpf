@@ -57,10 +57,17 @@ impl AnalyzeTarget {
                 .insert(event.buffer, (event.ktime_ns, VecDeque::with_capacity(144)));
         }
 
+        let max_len = self
+            .buffers
+            .values()
+            .map(|(_, buffer)| buffer.len())
+            .max()
+            .unwrap_or_default();
         if self.buffers.get(&event.buffer)
             == self
                 .buffers
                 .values()
+                .filter(|(_, buffer)| buffer.len() == max_len)
                 .min_by_key(|(_, buffer)| buffer.iter().copied().sum::<Duration>())
         {
             self.buffers.get(&event.buffer)?.1.front().copied()
