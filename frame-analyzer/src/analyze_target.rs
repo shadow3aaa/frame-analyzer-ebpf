@@ -61,7 +61,6 @@ impl AnalyzeTarget {
             == self
                 .buffers
                 .values()
-                .filter(|(_, buffer)| buffer.len() == 144)
                 .min_by_key(|(_, buffer)| buffer.iter().copied().sum::<Duration>())
         {
             self.buffers.get(&event.buffer)?.1.front().copied()
