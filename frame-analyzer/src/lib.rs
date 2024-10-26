@@ -227,6 +227,7 @@ impl Analyzer {
         }
 
         self.map.remove(&pid).ok_or(AnalyzerError::AppNotFound)?;
+        self.buffer.retain(|pid_event| *pid_event != pid);
         self.register_poll()?;
 
         Ok(())
@@ -255,6 +256,7 @@ impl Analyzer {
     /// ```
     pub fn detach_apps(&mut self) {
         self.map.clear();
+        self.buffer.clear();
     }
 
     /// Attempts to wait for a frametime value on this analyzer
