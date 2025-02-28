@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use aya::{include_bytes_aligned, Bpf};
+use aya::{Ebpf, include_bytes_aligned};
 use ctor::ctor;
 
 use crate::error::Result;
@@ -32,15 +32,15 @@ fn ebpf_workround() {
     unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlim) };
 }
 
-pub fn load_bpf() -> Result<Bpf> {
+pub fn load_bpf() -> Result<Ebpf> {
     // This will include eBPF object file as raw bytes at compile-time and load it at runtime.
     #[cfg(debug_assertions)]
-    let bpf = Bpf::load(include_bytes_aligned!(concat!(
+    let bpf = Ebpf::load(include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/ebpf_target/bpfel-unknown-none/debug/frame-analyzer-ebpf"
     )))?;
     #[cfg(not(debug_assertions))]
-    let bpf = Bpf::load(include_bytes_aligned!(concat!(
+    let bpf = Ebpf::load(include_bytes_aligned!(concat!(
         env!("OUT_DIR"),
         "/ebpf_target/bpfel-unknown-none/release/frame-analyzer-ebpf"
     )))?;

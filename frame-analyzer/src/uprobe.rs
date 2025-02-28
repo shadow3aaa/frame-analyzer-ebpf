@@ -17,15 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use aya::{
+    Ebpf,
     maps::{MapData, RingBuf},
     programs::UProbe,
-    Bpf,
 };
 
 use crate::{ebpf::load_bpf, error::Result};
 
 pub struct UprobeHandler {
-    bpf: Bpf,
+    bpf: Ebpf,
 }
 
 impl Drop for UprobeHandler {

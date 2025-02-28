@@ -20,7 +20,7 @@
 #![no_main]
 
 use aya_ebpf::{
-    helpers::gen::bpf_ktime_get_ns,
+    helpers::bpf_ktime_get_ns,
     macros::{map, uprobe},
     maps::RingBuf,
     programs::ProbeContext,

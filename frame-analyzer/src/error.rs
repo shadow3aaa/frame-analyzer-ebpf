@@ -18,7 +18,7 @@
  */
 use std::io;
 
-use aya::{maps::MapError, programs::ProgramError, BpfError};
+use aya::{EbpfError, maps::MapError, programs::ProgramError};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, AnalyzerError>;
@@ -26,7 +26,7 @@ pub type Result<T> = std::result::Result<T, AnalyzerError>;
 #[derive(Error, Debug)]
 pub enum AnalyzerError {
     #[error(transparent)]
-    BpfError(#[from] BpfError),
+    EbpfError(#[from] EbpfError),
     #[error(transparent)]
     BpfProgramError(#[from] ProgramError),
     #[error(transparent)]

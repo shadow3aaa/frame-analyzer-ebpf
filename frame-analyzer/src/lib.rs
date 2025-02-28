@@ -86,7 +86,7 @@ use std::{
     time::Duration,
 };
 
-use mio::{event::Event, unix::SourceFd, Events, Interest, Poll, Token};
+use mio::{Events, Interest, Poll, Token, event::Event, unix::SourceFd};
 
 use analyze_target::AnalyzeTarget;
 pub use error::AnalyzerError;
