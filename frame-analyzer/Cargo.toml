@@ -10,14 +10,14 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-aya = "0.12.0"
+aya = "0.13.1"
 frame-analyzer-ebpf-common = { path = "../frame-analyzer-ebpf-common", features = ["user"], version = "0" }
 anyhow = "1"
 libc = "0.2"
-thiserror = "1.0.58"
-ctor = "0.2.8"
+thiserror = "2.0.11"
+ctor = "0.4.0"
 ctrlc = "3.4.4"
-mio = { version = "0.8.11", features = ["os-ext"] }
+mio = { version = "1.0.3", features = ["os-ext"] }
 
 [build-dependencies]
-anyhow = "1"
+anyhow = "1.0.96"

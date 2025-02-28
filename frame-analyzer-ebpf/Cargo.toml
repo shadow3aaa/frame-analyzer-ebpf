@@ -1,6 +1,6 @@
 [package]
 name = "frame-analyzer-ebpf"
-edition = "2021"
+edition = "2024"
 version = "0.2.0"
 authors = ["shadow3aaa@github.com"]
 repository = "https://github.com/shadow3aaa/frame-analyzer-ebpf"
@@ -8,7 +8,7 @@ description = "The ebpf part of frame-analyzer"
 license = "GPL-3.0"
 
 [dependencies]
-aya-ebpf = "0.1.0"
+aya-ebpf = "0.1.1"
 frame-analyzer-ebpf-common = { path = "../frame-analyzer-ebpf-common", version = "0" }
 
 [[bin]]
