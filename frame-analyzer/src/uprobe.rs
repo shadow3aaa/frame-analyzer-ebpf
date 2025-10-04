@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use aya::{
-    Ebpf,
     maps::{MapData, RingBuf},
     programs::UProbe,
+    Ebpf,
 };
 
 use crate::{ebpf::load_bpf, error::Result};
@@ -47,7 +47,12 @@ impl UprobeHandler {
             0,
             "/system/lib64/libgui.so",
             Some(pid),
-        )?;
+        ).unwrap_or_else(|_| program.attach(
+            Some("_ZN7android7Surface11queueBufferEP19ANativeWindowBufferiPNS_24SurfaceQueueBufferOutputE"),
+            0,
+            "/system/lib64/libgui.so",
+            Some(pid),
+        )?);
 
         Ok(Self { bpf })
     }
