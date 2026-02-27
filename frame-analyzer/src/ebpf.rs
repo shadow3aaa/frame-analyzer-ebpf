@@ -29,7 +29,7 @@ fn ebpf_workround() {
         rlim_cur: libc::RLIM_INFINITY,
         rlim_max: libc::RLIM_INFINITY,
     };
-    unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlim) };
+    unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &raw const rlim) };
 }
 
 pub fn load_bpf() -> Result<Ebpf> {
