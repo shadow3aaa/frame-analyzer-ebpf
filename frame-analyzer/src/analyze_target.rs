@@ -16,11 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use std::{
-    collections::{HashMap, VecDeque},
-    ptr,
-    time::Duration,
-};
+use std::{collections::VecDeque, ptr, time::Duration};
 
 use frame_analyzer_ebpf_common::FrameSignal;
 
@@ -28,14 +24,16 @@ use crate::uprobe::UprobeHandler;
 
 pub struct AnalyzeTarget {
     pub uprobe: UprobeHandler,
-    buffers: HashMap<usize, (u64, VecDeque<Duration>)>,
+    last_ktime_ns: Option<u64>,
+    frametimes: VecDeque<Duration>,
 }
 
 impl AnalyzeTarget {
     pub fn new(uprobe: UprobeHandler) -> Self {
         Self {
             uprobe,
-            buffers: HashMap::new(),
+            last_ktime_ns: None,
+            frametimes: VecDeque::with_capacity(144),
         }
     }
 
@@ -43,37 +41,24 @@ impl AnalyzeTarget {
         let mut ring = self.uprobe.ring().unwrap();
         let item = ring.next()?;
         let event = unsafe { trans(&item) };
-        if let Some((timestamp, buffer)) = self.buffers.get_mut(&event.buffer) {
-            let frametime = event.ktime_ns.saturating_sub(*timestamp);
-            *timestamp = event.ktime_ns;
+        // Track the global queueBuffer cadence instead of per-buffer cadence.
+        // On devices with deep buffer queues, per-buffer deltas can alias to 1/N FPS.
+        const MIN_FRAME_NS: u64 = 1_000_000;
+        const MAX_FRAME_NS: u64 = 200_000_000;
 
-            if buffer.len() >= 144 {
-                buffer.pop_back();
+        if let Some(last_ns) = self.last_ktime_ns {
+            let frametime_ns = event.ktime_ns.saturating_sub(last_ns);
+            if (MIN_FRAME_NS..=MAX_FRAME_NS).contains(&frametime_ns) {
+                if self.frametimes.len() >= 144 {
+                    self.frametimes.pop_back();
+                }
+                self.frametimes
+                    .push_front(Duration::from_nanos(frametime_ns));
             }
-
-            buffer.push_front(Duration::from_nanos(frametime));
-        } else {
-            self.buffers
-                .insert(event.buffer, (event.ktime_ns, VecDeque::with_capacity(144)));
         }
+        self.last_ktime_ns = Some(event.ktime_ns);
 
-        let max_len = self
-            .buffers
-            .values()
-            .map(|(_, buffer)| buffer.len())
-            .max()
-            .unwrap_or_default();
-        if self.buffers.get(&event.buffer)
-            == self
-                .buffers
-                .values()
-                .filter(|(_, buffer)| buffer.len() == max_len)
-                .min_by_key(|(_, buffer)| buffer.iter().copied().sum::<Duration>())
-        {
-            self.buffers.get(&event.buffer)?.1.front().copied()
-        } else {
-            None
-        }
+        self.frametimes.front().copied()
     }
 }
 

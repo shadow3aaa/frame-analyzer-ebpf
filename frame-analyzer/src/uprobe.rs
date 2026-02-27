@@ -47,7 +47,7 @@ impl UprobeHandler {
             0,
             "/system/lib64/libgui.so",
             Some(pid),
-        ).or_else(|e1| {
+        ).or_else(|_e1| {
             program.attach(
                 Some("_ZN7android7Surface11queueBufferEP19ANativeWindowBufferiPNS_24SurfaceQueueBufferOutputE"),
                 0,
